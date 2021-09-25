@@ -83,7 +83,8 @@ def iteration_optimization(simulator: bool = True,
 
 #        print('ansatz.params:',ansatz.params)
         # added noise to the model
-##        ac.construct_noise_model(ansatz)
+        if ansatz.gate_error_probabilities:
+            ac.construct_noise_model(ansatz,device_name)
 
         # Pre-transpile parametrized circuits
         expectation=ac.construct_and_transpile_circuits(ansatz=ansatz, optimization_level=optimization_level, device_name=device_name, simulator=simulator,draw_circ=draw_circ)

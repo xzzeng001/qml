@@ -49,7 +49,8 @@ class Ansatz_Pool:
                 excited_ranks: Optional[str]='sd',
                 nterms: Optional[int] = 1,
                 ep_cont: Optional[List[float]] = None,
-                fci_e: Optional[float]=0):
+                fci_e: Optional[float]=0,
+                gate_error_probabilities: Optional[dict] = None):
         """
         Initialized the network class.
 
@@ -98,7 +99,7 @@ class Ansatz_Pool:
         self.ep_ncircuits = nterms - 1    # number of circuits for expectation      
         self.param_vector: List[Any] = [] # parameter vector (network parameters)
         # gate nosie study
-        self.gate_error_probabilities: dict = {}
+        self.gate_error_probabilities=gate_error_probabilities
         self.noise_model: Any = None
         self.coupling_map: Any = None
         
@@ -531,22 +532,24 @@ def generate_network_parameters(param_range: Optional[Union[float, List[float]]]
     return np.random.uniform(high=param_range, size=(num_params))
 
 
-def construct_noise_model(ansatz: Union[Ansatz_Pool]) -> None:
+def construct_noise_model(ansatz: Union[Ansatz_Pool],
+                          device_name: str) -> None:
     """
     Constructs the noise model for the gate_error_probabilities of the respectice network.
 
     Args:
         ansatz (Union[Ansatz_Pool]): The ansatz's class. 
     """    
-    provider = training.get_provider()
-    backend = provider.get_backend('qasm_simulator')
+#    provider = training.get_provider()
+#    backend = provider.get_backend('qasm_simulator')
+    backend = Aer.get_backend(device_name)
     ansatz.coupling_map = backend.configuration().coupling_map
         
-    noise_model = noise.NoiseModel(["cx", "rz", "sx", "x"])
+    noise_model = noise.NoiseModel(["u3", "rxx", "ryy", "rzz"])
     for gate, value in ansatz.gate_error_probabilities.items():
         error = noise.depolarizing_error(*value)
         noise_model.add_all_qubit_quantum_error(error, gate)
-    network.noise_model = noise_model
+    ansatz.noise_model = noise_model
 
 
 def construct_and_transpile_circuits(ansatz: Union[Ansatz_Pool],

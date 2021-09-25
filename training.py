@@ -334,7 +334,11 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
     backend = Aer.get_backend(device_name)
     backend.set_option("method",simulation_method)
     backend.set_option("max_parallel_experiments",num_proc)
-    q_instance = QuantumInstance(backend, shots=shots)
+   
+    if ansatz.gate_error_probabilities:
+        q_instance = QuantumInstance(backend, shots=shots,coupling_map=ansatz.coupling_map, noise_model=ansatz.noise_model)
+    else: 
+        q_instance = QuantumInstance(backend, shots=shots)
  
     def calculate_energy(ansatz_params):
         ep_final=float(ansatz.ep_cont[0])

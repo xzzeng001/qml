@@ -57,7 +57,7 @@ if __name__ == "__main__":
         spin   = 0
         charge = 0
 
-        energy, n_qubits, n_orb, n_orb_occ, occ_indices_spin, nterms, ep_cont, ham = obtain_Hamiltonian(geometry,basis,spin,charge,dist,with_fci=True, BK_reduce=False) 
+        energy, n_qubits, n_orb, n_orb_occ, occ_indices_spin, nterms, ep_cont, ham = obtain_Hamiltonian(geometry,basis,spin,charge,dist,with_fci=True, BK_reduce=True) 
 
         if n_qubits >= 10:
             draw_circ=False
@@ -65,19 +65,19 @@ if __name__ == "__main__":
         ## Choose ansatz for your training run
         ep_final=iteration_optimization(
             simulator=True,
-            ansatz=Ansatz_Pool(name='dqnn',qnn_arch=[n_qubits,n_qubits], measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont),
+            ansatz=Ansatz_Pool(name='dqnn',qnn_arch=[n_qubits,n_qubits], measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont), #,gate_error_probabilities={'u3': [1.0e-3,1],'rxx': [1.0e-3,2],'ryy': [1.0e-3,2],'rzz': [1.0e-3,2]}),
 #            ansatz=Ansatz_Pool(name='ucc', excited_ranks='gsd', n_qubits=n_qubits, n_orb=n_orb, n_orb_occ=n_orb_occ, occ_indices_spin=occ_indices_spin,measurement_method='PauliExpectation',hamiltonian=ham,fci_e=energy,nterms=nterms,ep_cont=ep_cont),
 #            ansatz=Ansatz_Pool(name='hardware',n_qubits=n_qubits, num_entangle=1, measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont),
             adapt_vqe=False, # for the adapt vqe
             adapt_tol=1e-3,  # the tolerance of adapt_vqe
             adapt_max_iter=20, # the maximum steps for the adapt_vqe
             shots=10000,    # the maximum iterations
-            epochs=10, # total epochs about 3.5*epochs
+            epochs=1000, # total epochs about 3.5*epochs
             optimize_method="COBYLA",#"Adam",#"Nelder-Mead",#"COBYLA"
             learning_rate=1e-3,
             analy_grad=False, # True for the analytical gradient method, False for Numerical gradient 
             order_of_derivative=2,   # the order of derivative 
-            epsilon=0.25,            # the step for the derivative       
+            epsilon=0.25,            # the step for the derivative      
             draw_circ=draw_circ,
             load_params_from='./params.txt' if os.path.exists('params.txt') else None,
             device_name="qasm_simulator",
