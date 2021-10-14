@@ -22,15 +22,19 @@ logger.setLevel(logging.INFO)
 from execution import *
 
 if __name__ == "__main__":
-    
-##    # Load IBMQ account
-##    try:
-##        if api_token != '':
-##            IBMQ.enable_account(api_token)
-##        else:
-##            IBMQ.load_account()
-##    except:
-##        logger.error('Set your api_token in user_config.py or use IBMQ.save_account(your_api_token) on your machine once.')
+   
+
+    simulator=False
+    # if use the real quantum computor
+    if not simulator: 
+       # Load IBMQ account
+       try:
+           if api_token != '':
+               IBMQ.enable_account(api_token)
+           else:
+               IBMQ.load_account()
+       except:
+           logger.error('Set your api_token in user_config.py or use IBMQ.save_account(your_api_token) on your machine once.')
                     
     # obtain the Hamiltonian from the specific system
     np.set_printoptions(threshold=np.inf)
@@ -65,8 +69,8 @@ if __name__ == "__main__":
         noise_frac=1e-3
         ## Choose ansatz for your training run
         ep_final=iteration_optimization(
-            simulator=True,
-            ansatz=Ansatz_Pool(name='dqnn',qnn_arch=[n_qubits,n_qubits], measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont), #,gate_error_probabilities={'u3': [noise_frac,1],'rxx': [noise_frac,2],'ryy': [noise_frac,2],'rzz': [noise_frac,2]}),
+            simulator=simulator,
+            ansatz=Ansatz_Pool(name='dqnn',qnn_arch=[n_qubits,n_qubits], measurement_method='swap_trick',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont), #,gate_error_probabilities={'u3': [noise_frac,1],'rxx': [noise_frac,2],'ryy': [noise_frac,2],'rzz': [noise_frac,2]}),
 #            ansatz=Ansatz_Pool(name='ucc', excited_ranks='gsd', n_qubits=n_qubits, n_orb=n_orb, n_orb_occ=n_orb_occ, occ_indices_spin=occ_indices_spin,measurement_method='PauliExpectation',hamiltonian=ham,fci_e=energy,nterms=nterms,ep_cont=ep_cont),
 #            ansatz=Ansatz_Pool(name='hardware',n_qubits=n_qubits, num_entangle=1, measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont),
             adapt_vqe=False, # for the adapt vqe
@@ -81,7 +85,7 @@ if __name__ == "__main__":
             epsilon=0.25,            # the step for the derivative      
             draw_circ=draw_circ,
             load_params_from='./params.txt' if os.path.exists('params.txt') else None,
-            device_name="qasm_simulator",
+            device_name="ibmq_belem",#"qasm_simulator",
             simulation_method="matrix_product_state",
             optimization_level=3)
 

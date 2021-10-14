@@ -161,6 +161,15 @@ class Ansatz_Pool:
         # add last U3s to all output qubits (last layer)
         circ = add_one_qubit_gates(circ, q_reg[-self.qnn_arch[-1]:], params[-self.qnn_arch[-1]*3:])
 
+        if self.ep_ncircuits > 100:
+            file_name='circuit_all.txt'
+        else:
+            file_name='circuit_all.png'
+
+        if (draw_circ):
+            # draw the sub-circuit
+            sd.draw_circuit(circ.decompose(), filename=file_name)
+
 #        print('parameters:',circ.parameters)
         # add expectation value measurement
         if self.meas_method == "swap_trick":
@@ -276,8 +285,8 @@ class Ansatz_Pool:
                 file_suffix='.png'
 
             # draw a single circuit
-            file_idx='circuit_'+str(idx_circuit)+file_suffix
-            sd.draw_circuit(circuits[0], filename=file_idx)
+#            file_idx='circuit_'+str(idx_circuit)+file_suffix
+#            sd.draw_circuit(circuits[0], filename=file_idx)
             # draw a single transpiled circuits
             file_idx='transpiled_circuit_'+str(idx_circuit)+file_suffix
             sd.draw_circuit(transpiled_circuits[0], filename=file_idx)
@@ -375,15 +384,15 @@ class Ansatz_Pool:
                 circ.ryy(2*ty, q_reg[j], q_reg[qnn_arch[0]+i])
                 circ.rzz(2*tz, q_reg[j], q_reg[qnn_arch[0]+i])
 
-        if self.ep_ncircuits > 20:
-            file_name='circuit-layer_{}.txt'
-        else:
-            file_name='circuit-layer_{}.png'
-
-        if (draw_circ):
-            # draw the sub-circuit
-        #   print('come to here new!')
-            sd.draw_circuit(circ, filename=file_name.format(layer))
+##        if self.ep_ncircuits > 20:
+##            file_name='circuit-layer_{}.txt'
+##        else:
+##            file_name='circuit-layer_{}.png'
+##
+##        if (draw_circ):
+##            # draw the sub-circuit
+##        #   print('come to here new!')
+##            sd.draw_circuit(circ, filename=file_name.format(layer))
         return circ
 
     def reshape_params_for_plotting(self,

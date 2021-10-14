@@ -100,6 +100,7 @@ def execute_circuits(ansatz: Union[Ansatz_Pool],
                      simulator: bool,
                      device_name: str,
                      idx_circuit: int = 0,
+                     epoch: int = 0,
                      shots: int = 2**13) -> float:
     """
     Executes a single or a list of circuits on either the
@@ -330,10 +331,16 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
     # Define BOOKKEEPING lists
     plot_list_cost: List[List[Union[float]]] = []
 
-    all_params = [ansatz.params]   
-    backend = Aer.get_backend(device_name)
-    backend.set_option("method",simulation_method)
-    backend.set_option("max_parallel_experiments",num_proc)
+    all_params = [ansatz.params]
+
+    # Define device
+    if simulator:
+        backend = Aer.get_backend(device_name)
+        backend.set_option("method",simulation_method)
+        backend.set_option("max_parallel_experiments",num_proc)
+    else:
+        # Get device and download calibration data for each epoch
+        backend = get_device(ansatz, simulator, epochs, device_name=device_name)
    
     if ansatz.gate_error_probabilities:
         q_instance = QuantumInstance(backend, shots=shots,coupling_map=ansatz.coupling_map, noise_model=ansatz.noise_model)
