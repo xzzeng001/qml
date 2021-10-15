@@ -1,7 +1,7 @@
 from pennylane import qchem
 import numpy as np
 import pennylane as qml
-import torch,sys
+import os,sys
 import pyscf
 import pyscf.cc
 import pyscf.fci
@@ -97,7 +97,10 @@ def cost_fn(params):
    return qml.expval(H)
 
 opt=qml.AdagradOptimizer(stepsize=0.01)
-theta=2*np.random.rand(3*qubits*qubits+6*qubits)
+if os.path.exists('params.txt'):
+   theta=np.array(np.loadtxt('params.txt'))
+else:
+   theta=np.random.rand(3*qubits*qubits+6*qubits)
 
 energy=[cost_fn(theta)]
 
@@ -105,45 +108,51 @@ max_iterations=1000
 
 for n in range(max_iterations):
    theta,prev_energy=opt.step_and_cost(cost_fn,theta)
-   energy.append(cost_fn(theta))
-   conv=np.abs(energy[-1]-E_fci)
+   energy=cost_fn(theta)
+   conv=energy-E_fci
 
-   print(f"Step = {n}, Energy = {energy[-1]:.8f} Ha, error = {conv:.8f} Ha")
+   with open('energy.txt','a') as f:
+      np.savetxt(f,[[dist,energy,E_fci,conv]])
+
+   if energy < prev_energy:
+      np.savetxt("params.txt",[theta])
+
+   print(f"Step = {n}, Energy = {energy:.8f} Ha, error = {conv:.8f} Ha")
 
 #print("\n" f"Final value of the ground-state energy = {energy[-1]:.8f} Ha")
 #print("\n" f"Optimal value of the circuit parameter = {angle[-1]:.4f}")
 
-import matplotlib.pyplot as plt
-
-fig = plt.figure()
-fig.set_figheight(5)
-fig.set_figwidth(12)
-
-# Full configuration interaction (FCI) energy computed classically
-#E_fci = -1.136189454088
-
-print('Final accuracy: ',energy[-1]-E_fci)
-
-# Add energy plot on column 1
-ax1 = fig.add_subplot(121)
-ax1.plot(range(n + 2), energy, "go-", ls="dashed")
-ax1.plot(range(n + 2), np.full(n + 2, E_fci), color="red")
-ax1.set_xlabel("Optimization step", fontsize=13)
-ax1.set_ylabel("Energy (Hartree)", fontsize=13)
-ax1.text(0.5, -1.1176, r"$E_\mathrm{HF}$", fontsize=15)
-ax1.text(0, -1.1357, r"$E_\mathrm{FCI}$", fontsize=15)
-plt.xticks(fontsize=12)
-plt.yticks(fontsize=12)
-
-'''
-# Add angle plot on column 2
-ax2 = fig.add_subplot(122)
-ax2.plot(range(n + 2), angle, "go-", ls="dashed")
-ax2.set_xlabel("Optimization step", fontsize=13)
-ax2.set_ylabel("Gate parameter $\\theta$ (rad)", fontsize=13)
-plt.xticks(fontsize=12)
-plt.yticks(fontsize=12)
-
-plt.subplots_adjust(wspace=0.3, bottom=0.2)
-'''
-plt.show()  
+#import matplotlib.pyplot as plt
+#
+#fig = plt.figure()
+#fig.set_figheight(5)
+#fig.set_figwidth(12)
+#
+## Full configuration interaction (FCI) energy computed classically
+##E_fci = -1.136189454088
+#
+#print('Final accuracy: ',energy[-1]-E_fci)
+#
+## Add energy plot on column 1
+#ax1 = fig.add_subplot(121)
+#ax1.plot(range(n + 2), energy, "go-", ls="dashed")
+#ax1.plot(range(n + 2), np.full(n + 2, E_fci), color="red")
+#ax1.set_xlabel("Optimization step", fontsize=13)
+#ax1.set_ylabel("Energy (Hartree)", fontsize=13)
+#ax1.text(0.5, -1.1176, r"$E_\mathrm{HF}$", fontsize=15)
+#ax1.text(0, -1.1357, r"$E_\mathrm{FCI}$", fontsize=15)
+#plt.xticks(fontsize=12)
+#plt.yticks(fontsize=12)
+#
+#'''
+## Add angle plot on column 2
+#ax2 = fig.add_subplot(122)
+#ax2.plot(range(n + 2), angle, "go-", ls="dashed")
+#ax2.set_xlabel("Optimization step", fontsize=13)
+#ax2.set_ylabel("Gate parameter $\\theta$ (rad)", fontsize=13)
+#plt.xticks(fontsize=12)
+#plt.yticks(fontsize=12)
+#
+#plt.subplots_adjust(wspace=0.3, bottom=0.2)
+#'''
+#plt.show()  
