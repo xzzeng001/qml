@@ -143,6 +143,13 @@ def execute_circuits(ansatz: Union[Ansatz_Pool],
         flat_circuits.extend(circ.get('circuits'))
     shape = shape[:-1] # Remove last index for better use with np.split()
 
+    ii=0
+    for circ in flat_circuits:
+        file_='circuit_'+str(ii)+'.txt'
+        circ.qasm(filename=file_)
+        ii+=1
+    sys.exit(0)
+
     # Execute all circuits on device
     counts = ansatz.execute_circuits(flat_circuits, device, shots)
 

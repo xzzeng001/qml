@@ -24,17 +24,17 @@ from execution import *
 if __name__ == "__main__":
    
 
-    simulator=False
-    # if use the real quantum computor
-    if not simulator: 
-       # Load IBMQ account
-       try:
-           if api_token != '':
-               IBMQ.enable_account(api_token)
-           else:
-               IBMQ.load_account()
-       except:
-           logger.error('Set your api_token in user_config.py or use IBMQ.save_account(your_api_token) on your machine once.')
+    simulator=True
+##    # if use the real quantum computor
+##    if not simulator: 
+##       # Load IBMQ account
+##       try:
+##           if api_token != '':
+##               IBMQ.enable_account(api_token)
+##           else:
+##               IBMQ.load_account()
+##       except:
+##           logger.error('Set your api_token in user_config.py or use IBMQ.save_account(your_api_token) on your machine once.')
                     
     # obtain the Hamiltonian from the specific system
     np.set_printoptions(threshold=np.inf)
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             epsilon=0.25,            # the step for the derivative      
             draw_circ=draw_circ,
             load_params_from='./params.txt' if os.path.exists('params.txt') else None,
-            device_name="ibmq_belem",#"qasm_simulator",
+            device_name="qasm_simulator",#"ibmq_belem",#"qasm_simulator",
             simulation_method="matrix_product_state",
             optimization_level=3)
 

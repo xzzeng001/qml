@@ -262,7 +262,7 @@ class Ansatz_Pool:
         # set the backend, coupling map, basis gates and optimization level of gate_error_probabilities (if given)
         transpile_backend = backend if not self.gate_error_probabilities else None
         transpile_coupling_map = None if not self.gate_error_probabilities else self.coupling_map
-        transpile_basis_gates = None if not self.gate_error_probabilities else self.noise_model.basis_gates
+        transpile_basis_gates = ["cx","u3"] #None if not self.gate_error_probabilities else self.noise_model.basis_gates
         # optimization level should be ever 0,1,2 or 3
         if not optimization_level in [0,1,2,3]: 
             logger.warning("Optimization level out of bounds. An optimization level of 3 will be used.")
@@ -273,7 +273,7 @@ class Ansatz_Pool:
         transpiled_circuits = transpile(circuits, backend=transpile_backend, 
             optimization_level=transpile_optlvl, coupling_map=transpile_coupling_map, 
             basis_gates=transpile_basis_gates, seed_transpiler=0)
-
+        
         # function should return a list of quantum circuits
         if not isinstance(transpiled_circuits, list): transpiled_circuits = [transpiled_circuits]
 
@@ -294,6 +294,9 @@ class Ansatz_Pool:
         # save the depth and number of operations of the transpiled circuit
         if save_info:
             sd.save_execution_info(transpilation_info="depth: {}, count_ops: {}".format(transpiled_circuits[0].depth(), transpiled_circuits[0].count_ops()),num_params=self.num_params)
+
+#        transpiled_circuits[0].qasm('circuit.txt')
+#        sys.exit(0)
 
         if Ham_op == None:
             return transpiled_circuits
