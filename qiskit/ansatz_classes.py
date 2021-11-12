@@ -68,7 +68,12 @@ class Ansatz_Pool:
             self.num_params = sum([qnn_arch[l]*qnn_arch[l+1]*3 + (qnn_arch[l])*3 for l in range(len(qnn_arch)-1)]) + qnn_arch[-1]*3 # total number of parameters
             self.params_per_layer = [self.qnn_arch[l]*self.qnn_arch[l+1]*3 + (self.qnn_arch[l])*3 for l in range(len(qnn_arch)-1)] # number of parameters per layer
             self.params = generate_network_parameters(num_params=self.num_params, load_from=params)
-            self.required_qubits = sum(self.qnn_arch)+self.auxillary_qubits # required number of qubits
+
+            # calculate the required qubits
+            a=np.array(self.qnn_arch)
+            ind = np.argpartition(a, -2)[-2:]
+            self.required_qubits = a[ind[0]]+a[ind[1]]+self.auxillary_qubits # required number of qubits
+#            self.required_qubits = sum(self.qnn_arch)+self.auxillary_qubits # required number of qubits
         elif self.name == 'ucc':
             self.excited_ranks=excited_ranks
             self.num_qubits = n_qubits
@@ -148,16 +153,30 @@ class Ansatz_Pool:
         # initialize the quantum circuit
         circ, q_reg, c_reg = init_quantum_circuit(self.required_qubits, 1 if self.meas_method == "swap_trick" else 0)
 
-    ##    circ=generate_hartree_fock_circuit(circ, q_reg, self.occ_indices_spin)
+        input_index=[i for i in range(self.auxillary_qubits,self.auxillary_qubits + self.qnn_arch[0])]
+        tmp_out=[i for i in range(self.required_qubits)]
+        for ii in input_index:
+           tmp_out.remove(ii)
 
         # going through each output layer
         for layer in range(len(self.qnn_arch)-1):
+            output_index=tmp_out[0:self.qnn_arch[layer+1]]
             # the resepctive parameters
             layer_params = params[np.sign(layer)*sum(self.params_per_layer[:layer]):sum(self.params_per_layer[:layer+1])]
+
+            index_all=input_index+output_index
             # the respective qubit register
-            in_and_output_register = q_reg[self.auxillary_qubits + np.sign(layer)*sum(self.qnn_arch[:layer]):self.auxillary_qubits + sum(self.qnn_arch[0:layer+2])]
+            in_and_output_register = q_reg[index_all]
+
             # append subcircuit connecting all neurons of (layer+1) to layer
             circ.append(self.generate_canonical_circuit_all_neurons(layer_params, layer=layer+1, draw_circ=draw_circ).to_instruction(), in_and_output_register)
+
+            circ.reset(input_index)
+            input_index=output_index
+            tmp_out=[i for i in range(self.required_qubits)]
+            for ii in input_index:
+               tmp_out.remove(ii)
+
         # add last U3s to all output qubits (last layer)
         circ = add_one_qubit_gates(circ, q_reg[-self.qnn_arch[-1]:], params[-self.qnn_arch[-1]*3:])
 
@@ -262,7 +281,7 @@ class Ansatz_Pool:
         # set the backend, coupling map, basis gates and optimization level of gate_error_probabilities (if given)
         transpile_backend = backend if not self.gate_error_probabilities else None
         transpile_coupling_map = None if not self.gate_error_probabilities else self.coupling_map
-        transpile_basis_gates = ["cx","u3"] #None if not self.gate_error_probabilities else self.noise_model.basis_gates
+        transpile_basis_gates = None if not self.gate_error_probabilities else self.noise_model.basis_gates
         # optimization level should be ever 0,1,2 or 3
         if not optimization_level in [0,1,2,3]: 
             logger.warning("Optimization level out of bounds. An optimization level of 3 will be used.")

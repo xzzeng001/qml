@@ -70,7 +70,7 @@ if __name__ == "__main__":
         ## Choose ansatz for your training run
         ep_final=iteration_optimization(
             simulator=simulator,
-            ansatz=Ansatz_Pool(name='dqnn',qnn_arch=[n_qubits,n_qubits], measurement_method='swap_trick',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont), #,gate_error_probabilities={'u3': [noise_frac,1],'rxx': [noise_frac,2],'ryy': [noise_frac,2],'rzz': [noise_frac,2]}),
+            ansatz=Ansatz_Pool(name='dqnn',qnn_arch=[n_qubits,n_qubits,n_qubits], measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont), #,gate_error_probabilities={'u3': [noise_frac,1],'rxx': [noise_frac,2],'ryy': [noise_frac,2],'rzz': [noise_frac,2]}),
 #            ansatz=Ansatz_Pool(name='ucc', excited_ranks='gsd', n_qubits=n_qubits, n_orb=n_orb, n_orb_occ=n_orb_occ, occ_indices_spin=occ_indices_spin,measurement_method='PauliExpectation',hamiltonian=ham,fci_e=energy,nterms=nterms,ep_cont=ep_cont),
 #            ansatz=Ansatz_Pool(name='hardware',n_qubits=n_qubits, num_entangle=1, measurement_method='PauliExpectaion',hamiltonian=ham,fci_e=energy, nterms=nterms,ep_cont=ep_cont),
             adapt_vqe=False, # for the adapt vqe
