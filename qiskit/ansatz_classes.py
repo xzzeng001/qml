@@ -171,11 +171,14 @@ class Ansatz_Pool:
             # append subcircuit connecting all neurons of (layer+1) to layer
             circ.append(self.generate_canonical_circuit_all_neurons(layer_params, layer=layer+1, draw_circ=draw_circ).to_instruction(), in_and_output_register)
 
-            circ.reset(input_index)
-            input_index=output_index
-            tmp_out=[i for i in range(self.required_qubits)]
-            for ii in input_index:
-               tmp_out.remove(ii)
+            if layer != len(self.qnn_arch)-2:
+#               circ.measure(input_index,c_reg) 
+#            else:
+               circ.reset(input_index)
+               input_index=output_index
+               tmp_out=[i for i in range(self.required_qubits)]
+               for ii in input_index:
+                  tmp_out.remove(ii)
 
         # add last U3s to all output qubits (last layer)
         circ = add_one_qubit_gates(circ, q_reg[-self.qnn_arch[-1]:], params[-self.qnn_arch[-1]*3:])
@@ -514,6 +517,8 @@ class Ansatz_Pool:
             Ham_op2.append([self.ep_cont[ii],Pauli(op_str)])
             ii += 1
 
+##        print('Ham_op',Ham_op)
+##        sys.exit(0)
         rrt=TPBGroupedWeightedPauliOperator(paulis=Ham_op2,basis=None)
         rr2=rrt.simplify()
         str_details=rrt.sorted_grouping(rr2).print_details()

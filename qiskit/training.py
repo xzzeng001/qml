@@ -383,6 +383,7 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
         sampler = CircuitSampler(q_instance).convert(expectation,params)
         ep_final = sampler.eval().real
 
+#        print('ep_final',sampler.eval())
 #        end_time = time()
 #        print('total_time:',end_time-start_time)
 #        sys.exit(0)
