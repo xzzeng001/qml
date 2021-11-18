@@ -7,17 +7,21 @@ import utils
 # --- QISKIT ---
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile, Aer, execute, assemble# type: ignore
 from qiskit.quantum_info.operators import Operator # type: ignore
-from qiskit.circuit import ParameterVector # type: ignore
+from qiskit.circuit import ParameterVector,Parameter # type: ignore
 from qiskit.providers.ibmq.managed import IBMQJobManager # type: ignore
 import qiskit.providers.aer.noise as noise # type: ignore
 
 from qiskit.quantum_info import Pauli
-from qiskit.opflow.expectations import AerPauliExpectation,PauliExpectation
+from qiskit.opflow.expectations import AerPauliExpectation,PauliExpectation,MatrixExpectation
 from qiskit.opflow.state_fns import StateFn,CircuitStateFn
 from qiskit.opflow.list_ops import SummedOp
 from qiskit.opflow.primitive_ops import PauliOp
 from qiskit import Aer
 from qiskit.aqua.operators.legacy import TPBGroupedWeightedPauliOperator 
+
+from qiskit.quantum_info import DensityMatrix, partial_trace
+
+import torch
 
 # additional math libs
 import numpy as np # type: ignore
@@ -70,9 +74,14 @@ class Ansatz_Pool:
             self.params = generate_network_parameters(num_params=self.num_params, load_from=params)
 
             # calculate the required qubits
-            a=np.array(self.qnn_arch)
-            ind = np.argpartition(a, -2)[-2:]
-            self.required_qubits = a[ind[0]]+a[ind[1]]+self.auxillary_qubits # required number of qubits
+            aa=self.qnn_arch[1:]
+            ind = aa.index(max(aa))
+            if ind == len(aa)-1:
+               bb=aa[ind-1]
+            else:
+               bb=max(aa[ind-1],aa[ind+1])
+            self.required_qubits = aa[ind]+bb+self.auxillary_qubits # required number of qubits
+            self.num_c_reg=sum(qnn_arch)-qnn_arch[-1]
 #            self.required_qubits = sum(self.qnn_arch)+self.auxillary_qubits # required number of qubits
         elif self.name == 'ucc':
             self.excited_ranks=excited_ranks
@@ -151,16 +160,16 @@ class Ansatz_Pool:
             QuantumCircuit: The quantum circuit.
         """    
         # initialize the quantum circuit
-        circ, q_reg, c_reg = init_quantum_circuit(self.required_qubits, 1 if self.meas_method == "swap_trick" else 0)
+        circ, q_reg, c_reg = init_quantum_circuit(self.required_qubits, self.num_c_reg+1 if self.meas_method == "swap_trick" else self.num_c_reg)
 
-        input_index=[i for i in range(self.auxillary_qubits,self.auxillary_qubits + self.qnn_arch[0])]
-        tmp_out=[i for i in range(self.required_qubits)]
+        input_index=[i+1 for i in range(self.qnn_arch[0])]
+        out_index=[i for i in range(1,self.required_qubits)]
         for ii in input_index:
-           tmp_out.remove(ii)
+           out_index.remove(ii)
 
+        output_index=out_index[-self.qnn_arch[1]:]
         # going through each output layer
         for layer in range(len(self.qnn_arch)-1):
-            output_index=tmp_out[0:self.qnn_arch[layer+1]]
             # the resepctive parameters
             layer_params = params[np.sign(layer)*sum(self.params_per_layer[:layer]):sum(self.params_per_layer[:layer+1])]
 
@@ -171,19 +180,26 @@ class Ansatz_Pool:
             # append subcircuit connecting all neurons of (layer+1) to layer
             circ.append(self.generate_canonical_circuit_all_neurons(layer_params, layer=layer+1, draw_circ=draw_circ).to_instruction(), in_and_output_register)
 
+            # add sigma-z to the input_index qubits
+#            for i in input_index:
+#               circ.z(q_reg[i])
+            circ.measure(input_index,c_reg[sum(self.qnn_arch[:layer]):sum(self.qnn_arch[:layer])+self.qnn_arch[layer]])  
+            circ.reset(input_index)
+
             if layer != len(self.qnn_arch)-2:
-#               circ.measure(input_index,c_reg) 
-#            else:
-               circ.reset(input_index)
                input_index=output_index
                tmp_out=[i for i in range(self.required_qubits)]
                for ii in input_index:
                   tmp_out.remove(ii)
+               if (layer+2)%2 == 1:
+                  output_index=tmp_out[-self.qnn_arch[layer+2]:]
+               else:
+                  output_index=tmp_out[:self.qnn_arch[layer+2]]
 
         # add last U3s to all output qubits (last layer)
-        circ = add_one_qubit_gates(circ, q_reg[-self.qnn_arch[-1]:], params[-self.qnn_arch[-1]*3:])
+        circ = add_one_qubit_gates(circ, q_reg[:self.qnn_arch[-1]], params[-self.qnn_arch[-1]*3:])
 
-        if self.ep_ncircuits > 100:
+        if self.ep_ncircuits > 1000:
             file_name='circuit_all.txt'
         else:
             file_name='circuit_all.png'
@@ -195,7 +211,7 @@ class Ansatz_Pool:
 #        print('parameters:',circ.parameters)
         # add expectation value measurement
         if self.meas_method == "swap_trick":
-            circ = add_ep_measurement(circ, q_reg, c_reg, self.required_qubits-self.num_qubits, ep_gates=ep_gates)
+            circ = add_ep_measurement(circ, q_reg, c_reg, ep_gates=ep_gates)
         return circ
 
     def ucc_circuit(self,
@@ -258,7 +274,7 @@ class Ansatz_Pool:
 
         # add expectation value measurement
         if self.meas_method == "swap_trick":
-            circ = add_ep_measurement(circ, q_reg, c_reg, self.required_qubits-self.num_qubits, ep_gates=ep_gates)
+            circ = add_ep_measurement(circ, q_reg, c_reg, ep_gates=ep_gates)
         return circ
 
     def transpile_circuits(self,
@@ -313,6 +329,9 @@ class Ansatz_Pool:
             file_idx='transpiled_circuit_'+str(idx_circuit)+file_suffix
             sd.draw_circuit(transpiled_circuits[0], filename=file_idx)
 
+        psi = CircuitStateFn(transpiled_circuits[0])
+        measurable_expression = StateFn(Ham_op, is_measurement=True).compose(psi)
+
         # save the depth and number of operations of the transpiled circuit
         if save_info:
             sd.save_execution_info(transpilation_info="depth: {}, count_ops: {}".format(transpiled_circuits[0].depth(), transpiled_circuits[0].count_ops()),num_params=self.num_params)
@@ -332,8 +351,8 @@ class Ansatz_Pool:
 #                expectation = AerPauliExpectation().convert(measurable_expression)
 #            else:
 #                expectation = PauliExpectation().convert(measurable_expression)
-            expectation = PauliExpectation(group_paulis=True).convert(measurable_expression)
-             
+##            expectation = PauliExpectation(group_paulis=True).convert(measurable_expression)
+            expectation = MatrixExpectation().convert(measurable_expression)
 #            print('circuit',expectation.to_circuit)
 
             return expectation
@@ -390,13 +409,13 @@ class Ansatz_Pool:
         qnn_arch = self.qnn_arch[layer-1:layer+1]
         # number of qubits required for the layer
         num_qubits = qnn_arch[0]+qnn_arch[1]
-        
+       
         # initialize the quantum circuit
         circ, q_reg, _ = init_quantum_circuit(num_qubits, name="Layer {}".format(layer))
         
         # add U3s to input qubits
-        circ = add_one_qubit_gates(circ, q_reg[:qnn_arch[0]], params)
-        
+        circ = add_one_qubit_gates(circ, q_reg[:qnn_arch[0]], params[:qnn_arch[0]*3])
+       
         # loop over all neurons
         for i in range(qnn_arch[1]):
             # parameters of the respective "neuron gates"
@@ -565,7 +584,11 @@ def generate_network_parameters(param_range: Optional[Union[float, List[float]]]
         # param_range is a list -> consists of lower and upper bound
         return np.random.uniform(low=param_range[0], high=param_range[1], size=(num_params)) # Range of parameters, e.g. [-pi,pi] or [-1,1]
     # param_range is a float -> range = [0, param_range]
-    return np.random.uniform(high=param_range, size=(num_params))
+    amplitudes = np.random.uniform(high=param_range, size=(num_params)) 
+    amplitudes_tensor = torch.from_numpy(amplitudes).reshape([-1, 1])
+    torch.nn.init.xavier_normal(amplitudes_tensor)
+    amplitudes = amplitudes_tensor.reshape(-1).numpy()
+    return  np.random.uniform(high=param_range, size=(num_params))
 
 
 def construct_noise_model(ansatz: Union[Ansatz_Pool],
@@ -641,6 +664,8 @@ def construct_and_transpile_circuits(ansatz: Union[Ansatz_Pool],
                 tp_circs = [ansatz.circuit(params=ansatz.param_vector, ep_gates=ep_gates, draw_circ=draw_circ)]
                 ansatz.ep_circuits.append(ansatz.transpile_circuits(tp_circs, backend=device, optimization_level=optimization_level, idx_circuit=ii, draw_circ=draw_circ,save_info=save_info))
                 ii+=1
+                if draw_circ:
+                   draw_circ=False
             return None
 
     elif ansatz.name == 'ucc':
@@ -759,7 +784,6 @@ def add_one_qubit_gates(circ: QuantumCircuit,
 def add_ep_measurement(circ: QuantumCircuit,
                              q_register: QuantumRegister,
                              c_register: ClassicalRegister,
-                             idx_qubits: int,
                              ep_gates: str) -> QuantumCircuit:
     """
     Adds a expectation measurement to the given QuantumCircuit.
@@ -768,7 +792,6 @@ def add_ep_measurement(circ: QuantumCircuit,
         circ (QuantumCircuit): The quantum circuit.
         q_register (QuantumRegister): The quantum register containing the qubits.
         c_register (ClassicalRegister): The classical register (the measurement result is stored here).
-        idx_qubits (int): The index of output qubits
         ep_gates (str): The description of the Pauli gate information
     Returns:
         QuantumCircuit: The given quantum circuit including the expectation measurement.
@@ -799,7 +822,7 @@ def add_ep_measurement(circ: QuantumCircuit,
        
     circ.h(q_register[0])
     # measurement of the ancillary qubit
-    circ.measure(q_register[0], c_register[0])
+    circ.measure(q_register[0], c_register[-1])
 
     return circ   
 

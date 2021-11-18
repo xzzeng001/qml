@@ -14,7 +14,7 @@ import ansatz_classes as ac
 import sys
 from pyscf_func import chop_to_real
 import os
-from qiskit.algorithms.optimizers import ADAM,COBYLA,P_BFGS,NFT,QNSPSA,NELDER_MEAD
+from qiskit.algorithms.optimizers import ADAM,COBYLA,P_BFGS,NFT,QNSPSA,NELDER_MEAD,L_BFGS_B
 import ray
 #import functools
 
@@ -143,12 +143,12 @@ def execute_circuits(ansatz: Union[Ansatz_Pool],
         flat_circuits.extend(circ.get('circuits'))
     shape = shape[:-1] # Remove last index for better use with np.split()
 
-    ii=0
-    for circ in flat_circuits:
-        file_='circuit_'+str(ii)+'.txt'
-        circ.qasm(filename=file_)
-        ii+=1
-    sys.exit(0)
+#    ii=0
+#    for circ in flat_circuits:
+#        file_='circuit_'+str(ii)+'.txt'
+#        circ.qasm(filename=file_)
+#        ii+=1
+#    sys.exit(0)
 
     # Execute all circuits on device
     counts = ansatz.execute_circuits(flat_circuits, device, shots)
@@ -365,6 +365,7 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
 
 #        end_time = time()
 #        print('total_time:',end_time-start_time)
+#        sys.exit(0)
         plot_list_cost.append([ep_final,ansatz.fci_e,ep_final-ansatz.fci_e])
         if abs(ep_final-ansatz.fci_e) < abs(ansatz.min_e-ansatz.fci_e):
             ansatz.min_e=ep_final
@@ -380,7 +381,8 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
 #        start_time = time()
 
         params={ansatz.param_vector[i]: ansatz_params[i] for i in range(len(ansatz_params))}
-        sampler = CircuitSampler(q_instance).convert(expectation,params)
+##        sampler = CircuitSampler(q_instance).convert(expectation,params)
+        sampler = CircuitSampler(backend).convert(expectation,params)
         ep_final = sampler.eval().real
 
 #        print('ep_final',sampler.eval())
@@ -395,7 +397,7 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
             sd.save(ansatz=ansatz, all_params_epochs=[ansatz_params], plot_list_cost=plot_list_cost)
         else:
             sd.save(plot_list_cost=plot_list_cost)
-            
+#        sys.exit(0)           
         return ep_final
 
     def calculate_derivative(ansatz_params):
@@ -406,7 +408,8 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
         val_list=[]
         # assign the parameters and collect the results
         params={ansatz.param_vector[i]: ansatz_params[i] for i in range(len(ansatz_params))}
-        sampler = CircuitSampler(q_instance).convert(expectation,params)
+##        sampler = CircuitSampler(q_instance).convert(expectation,params)
+        sampler = CircuitSampler(backend).convert(expectation,params)
         val_old=sampler.eval().real
 
         # define the sampling function   
@@ -478,6 +481,8 @@ def normal_vqe(ansatz: Union[Ansatz_Pool],
             qnspsa = QNSPSA(fidelity, maxiter=epochs)
             result = qnspsa.optimize(num_vars=len(xx),objective_function=calculate_expectation,initial_point=xx,
                               gradient_function=calculate_derivative if analy_grad else None)
+        elif optimize_method == "L_BFGS_B":
+            rtmp=L_BFGS_B(maxiter=epochs).optimize(num_vars=len(xx),objective_function=calculate_expectation,initial_point=xx,gradient_function=calculate_derivative if analy_grad else None)
  
     if analy_grad:
         ray.shutdown()

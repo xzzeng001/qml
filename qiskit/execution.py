@@ -117,16 +117,16 @@ def iteration_optimization(simulator: bool = True,
             # Pre-transpile parametrized circuits
             expectation=ac.construct_and_transpile_circuits(ansatz=ansatz, optimization_level=optimization_level, 
                           ucc_operator_pool=ucc_operator_pool_qubitOp, device_name=device_name, simulator=simulator,draw_circ=draw_circ) 
-
-    if not adapt_vqe:
-        # evaluate the root of the possible variance
-        if ansatz.tpb_grouping:
-            reps=max(ansatz.ep_cont)*np.sqrt(ansatz.num_groups*(ansatz.nterms+ansatz.num_groups*
-                  max(ansatz.group_member))/ansatz.nterms/shots)
-        else:
-            reps=max(ansatz.ep_cont)*np.sqrt(ansatz.nterms/shots)
-    else:
-        reps=0.0
+    reps=0
+##    if not adapt_vqe:
+##        # evaluate the root of the possible variance
+##        if ansatz.tpb_grouping:
+##            reps=max(ansatz.ep_cont)*np.sqrt(ansatz.num_groups*(ansatz.nterms+ansatz.num_groups*
+##                  max(ansatz.group_member))/ansatz.nterms/shots)
+##        else:
+##            reps=max(ansatz.ep_cont)*np.sqrt(ansatz.nterms/shots)
+##    else:
+##        reps=0.0
 
 
     # Save all relevant parameters to an execution_info.txt

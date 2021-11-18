@@ -51,7 +51,7 @@ def make_file_structure() -> str:
 def determine_draw_method(nH: int=1) -> None:
 
     global draw_method
-    if nH > 100:
+    if nH > 1000:
         draw_method='text'
     
 def save_execution_info(simulator: Optional[bool] = None,
