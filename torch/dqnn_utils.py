@@ -20,7 +20,7 @@ def generate_density_matrix(num_qubits):
     generate the density matrix of zero state
     based on the number of qubits
     """
-    input_state=torch.tensor([[1,0]],dtype=torch.complex128)
+    input_state=torch.tensor([[1,0]],dtype=torch.complex64)
     out_state=torch.kron(input_state,input_state)
     for ii in range(num_qubits-2):
         out_state=torch.kron(out_state,input_state)
@@ -208,7 +208,7 @@ def save_data(all_params_epochs: Optional[Any] = None,
     
     if plot_list_cost: 
         with open('./energy.txt','a') as f:
-            np.savetxt(f,[plot_list_cost])
+            np.savetxt(f,plot_list_cost)
 
 #        plot_cost(plot_list_cost)
 

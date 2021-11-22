@@ -51,7 +51,7 @@ if __name__ == "__main__":
     epochs=10000
     plot_list_cost: List[List[Union[float]]] = []
  
-    ham_mat = torch.tensor(openfermion.get_sparse_operator(ham).todense(),dtype=torch.complex128)
+    ham_mat = torch.tensor(openfermion.get_sparse_operator(ham).todense(),dtype=torch.complex64)
 
     def calculate_expectation(params):
 
@@ -93,9 +93,9 @@ if __name__ == "__main__":
         return energy
 
     if os.path.exists('params.txt'):
-        theta=torch.tensor(np.loadtxt('params.txt'),requires_grad=True,dtype=torch.complex128)
+        theta=torch.tensor(np.loadtxt('params.txt'),requires_grad=True,dtype=torch.complex64)
     else:
-        theta=torch.tensor(np.random.uniform(high=2*np.pi,size=(num_params)),requires_grad=True,dtype=torch.complex128)
+        theta=torch.tensor(np.random.uniform(high=2*np.pi,size=(num_params)),requires_grad=True,dtype=torch.complex64)
     optimizer = torch.optim.Adam([theta],lr=0.01)
     for n in range(epochs):
         energy=calculate_expectation(theta)
