@@ -20,9 +20,9 @@ def generate_density_matrix(num_qubits):
     generate the density matrix of zero state
     based on the number of qubits
     """
-    input_state=torch.tensor([[1,0]],dtype=torch.complex64)
-    out_state=torch.kron(input_state,input_state)
-    for ii in range(num_qubits-2):
+    input_state=torch.tensor([[1,0]],dtype=torch.float64)
+    out_state=input_state
+    for ii in range(1,num_qubits):
         out_state=torch.kron(out_state,input_state)
     out=torch.kron(out_state,out_state.T)
     return out
@@ -136,7 +136,7 @@ def generate_cangate(params:Any,
 
         iparam += 1
 
-    return circ_all     
+    return circ_all.real     
      
 def generate_canonical_circuit_all_neurons(qnn_arch_all:list,
                                            params: List[Any],
@@ -191,10 +191,10 @@ def add_one_qubit_gates(num_qubits: int,
 
     for i in range(sec_qubits):
         circ=torch.kron(circ,IGate())
-    return circ
+    return circ.real
 
 def save_data(all_params_epochs: Optional[Any] = None, 
-              plot_list_cost: Optional[List[List[Union[Union[int,float],float]]]] = None) -> None:
+              plot_list_cost: Optional[list] = None) -> None:
     """
     Saves and plots the given data to a file.
 
@@ -208,7 +208,7 @@ def save_data(all_params_epochs: Optional[Any] = None,
     
     if plot_list_cost: 
         with open('./energy.txt','a') as f:
-            np.savetxt(f,plot_list_cost)
+            np.savetxt(f,[plot_list_cost])
 
 #        plot_cost(plot_list_cost)
 

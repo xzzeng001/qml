@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # obtain the Hamiltonian from the specific system
     np.set_printoptions(threshold=np.inf)
   
-    dist=0.7 
+    dist=0.2 
     geometry = [["H", [0.0, 0.0, 0.0]],
                 ["H", [0.0, 0.0, 1.0*dist]],
                 ["H", [0.0, 0.0, 2.0*dist]],
@@ -49,9 +49,9 @@ if __name__ == "__main__":
 
     ansatz=cont_value(9999)
     epochs=10000
-    plot_list_cost: List[List[Union[float]]] = []
+    plot_list_cost = []
  
-    ham_mat = torch.tensor(openfermion.get_sparse_operator(ham).todense(),dtype=torch.complex64)
+    ham_mat = torch.tensor(openfermion.get_sparse_operator(ham).todense(),dtype=torch.float64)
 
     def calculate_expectation(params):
 
@@ -68,6 +68,8 @@ if __name__ == "__main__":
             # append subcircuit connecting all neurons of (layer+1) to layer
             circ=generate_canonical_circuit_all_neurons(qnn_arch,layer_params, layer=layer+1)
 
+#            print('circ:',circ.shape)
+#            print('out_dm:',out_dm.shape)
             tmp=torch.matmul(circ,out_dm)
             DM=torch.matmul(tmp,circ.T.conj())
             input_dm=partial_trace(DM,[2**qnn_arch[layer],2**qnn_arch[layer+1]])
@@ -79,23 +81,24 @@ if __name__ == "__main__":
         tmp=torch.matmul(circ,input_dm)
         out_dm=torch.matmul(tmp,circ.T.conj())
 
+#        print('trace(out_dm):',torch.trace(out_dm))
         energy=torch.div(torch.trace(torch.matmul(out_dm,ham_mat)),torch.trace(out_dm))
-        ep_final=energy.detach().numpy().real
+        ep_final=energy.detach().numpy()
 
-        plot_list_cost.append([ep_final,fci_energy,ep_final-fci_energy])
+        plot_list_cost=[ep_final,fci_energy,ep_final-fci_energy]
  
         if abs(ep_final-fci_energy) < abs(ansatz.min_e-fci_energy):
             ansatz.min_e=ep_final
-            save_data(all_params_epochs=params.detach().numpy().real, plot_list_cost=plot_list_cost)
+            save_data(all_params_epochs=params.detach().numpy(), plot_list_cost=plot_list_cost)
         else:
             save_data(plot_list_cost=plot_list_cost)
 
         return energy
 
     if os.path.exists('params.txt'):
-        theta=torch.tensor(np.loadtxt('params.txt'),requires_grad=True,dtype=torch.complex64)
+        theta=torch.tensor(np.loadtxt('params.txt'),requires_grad=True,dtype=torch.float64)
     else:
-        theta=torch.tensor(np.random.uniform(high=2*np.pi,size=(num_params)),requires_grad=True,dtype=torch.complex64)
+        theta=torch.tensor(np.random.uniform(high=2*np.pi,size=(num_params)),requires_grad=True,dtype=torch.float64)
     optimizer = torch.optim.Adam([theta],lr=0.01)
     for n in range(epochs):
         energy=calculate_expectation(theta)
