@@ -1,0 +1,45 @@
+COMPND    Cis-triscyclopropacyclohexane
+COMPND   1Created by VESTA
+HETATM    1 H1                   2.522  -0.956   1.182  1.00  1.00           H
+HETATM    2 C1                   1.833  -0.285   0.669  1.00  1.00           C
+HETATM    3 C2                  -1.806   0.514   0.000  1.00  1.00           C
+HETATM    4 C3                   0.903   0.514   1.564  1.00  1.00           C
+HETATM    5 H2                  -0.238  -0.956   2.775  1.00  1.00           H
+HETATM    6 H3                   0.622   1.453   1.077  1.00  1.00           H
+HETATM    7 H4                   1.434   0.790   2.484  1.00  1.00           H
+HETATM    8 C4                  -0.337  -0.285   1.922  1.00  1.00           C
+HETATM    9 C5                  -1.496  -0.285   1.253  1.00  1.00           C
+HETATM   10 H5                  -0.238  -0.956  -2.775  1.00  1.00           H
+HETATM   11 C6                  -0.337  -0.285  -1.922  1.00  1.00           C
+HETATM   12 H6                  -2.868   0.790   0.000  1.00  1.00           H
+HETATM   13 C7                   0.903   0.514  -1.564  1.00  1.00           C
+HETATM   14 H7                   2.522  -0.956  -1.182  1.00  1.00           H
+HETATM   15 H8                   0.622   1.453  -1.077  1.00  1.00           H
+HETATM   16 H9                   1.434   0.790  -2.484  1.00  1.00           H
+HETATM   17 C8                   1.833  -0.285  -0.669  1.00  1.00           C
+HETATM   18 H10                 -2.284  -0.956   1.594  1.00  1.00           H
+HETATM   19 H11                 -1.244   1.453   0.000  1.00  1.00           H
+HETATM   20 C9                  -1.496  -0.285  -1.253  1.00  1.00           C
+HETATM   21 H12                 -2.284  -0.956  -1.594  1.00  1.00           H
+CONECT    1    2
+CONECT    2    1    4   17
+CONECT    3   12   20    9   19
+CONECT    4    2    8    6    7
+CONECT    5    8
+CONECT    6    4
+CONECT    7    4
+CONECT    8    4    5    9
+CONECT    9    3    8   18
+CONECT   10   11
+CONECT   11   10   20   13
+CONECT   12    3
+CONECT   13   11   16   15   17
+CONECT   14   17
+CONECT   15   13
+CONECT   16   13
+CONECT   17    2   13   14
+CONECT   18    9
+CONECT   19    3
+CONECT   20    3   11   21
+CONECT   21   20
+END
